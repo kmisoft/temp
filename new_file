@@ -1,1 +1,16 @@
-something new
+Most financial series can
+be made stationary with
+a fractional
+differentiation of order
+𝑑 < 0.5.
+However, most financial
+studies are based on
+returns, where 𝑑 = 1.
+The implication is that
+for decades most
+financial research has
+been based on overdifferentiated (memoryless) series, leading to
+spurious forecasts and
+overfitting.
+
+https://pdfs.semanticscholar.org/bbf7/bc8f68d22cb8089a4860b111ba9ef60fc957.pdf
