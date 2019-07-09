@@ -1,0 +1,125 @@
+def play_scalp(df):
+    counter = 0
+    price_i = df.columns.get_loc("agg_Price")
+    max_k = 0
+    min_k = 100
+
+    btc_balance = 0.47 / 2
+    usd_balance = 2906
+
+    buy_orders = []
+    sell_orders = []
+
+    def put_buy_order(amount):
+        pass
+
+    def add_order(amount,price,original_price,order_list):
+        order_list.append( (amount,price,original_price) )
+
+    def put_sell_order(amount,price,original_price):
+        sell_orders.append( (amount,price,original_price) )
+
+    def put_buy_order(amount,price,original_price):
+        add_order(amount,price,original_price,buy_orders)
+
+    def execute_sell_order(amount,price):
+        # btc -> usd
+        usd_amount = amount * price * 0.999
+        return usd_amount
+
+    def execute_buy_order(amount,price):
+        # btc -> usd
+        usd_amount = amount * price * (1 + 0.001)
+        return usd_amount
+
+    def market_buy(amount,price):
+        usd_amount = amount * price # 0.5 * 10000usd/btc = 5000 usd
+        with_fee = usd_amount * 1.001
+        if with_fee > usd_balance:
+            return None
+        return btc_balance + amount, usd_balance - with_fee
+
+    def market_sell(amount,price):
+        if amount > btc_balance:
+            return None
+        usd_amount = amount * price # 0.5 * 10000usd/btc = 5000 usd
+        with_fee = usd_amount * (1 - 0.001)
+        return btc_balance - amount, usd_balance + with_fee
+
+    def check_sell_orders(price):
+        new_btc_balance = btc_balance
+        new_usd_balance = usd_balance
+        new_sell_order = []
+        for order_amount,order_price, original_price in sell_orders:
+            if order_price <= price:
+                print("SEEEEEEEEEEEEEEEEEEEEEEEEEEEEEELLLLLLLLLL",order_price,price,original_price)
+                usd_amount = execute_sell_order(order_amount,order_price)
+                new_btc_balance -= order_amount
+                new_usd_balance += usd_amount
+            else:
+                new_sell_order.append( (order_amount,order_price,original_price) )
+        return  new_btc_balance,new_usd_balance, new_sell_order
+
+    def check_buy_orders(price):
+        new_btc_balance = btc_balance
+        new_usd_balance = usd_balance
+        new_buy_order = []
+        for order_amount,order_price, original_price in buy_orders:
+            if order_price >= price:
+                print("BBBBBBBUY!!!!!!!!",order_price,price,original_price)
+                usd_amount = execute_buy_order(order_amount,order_price)
+                new_btc_balance += order_amount
+                new_usd_balance -= usd_amount
+            else:
+                new_buy_order.append( (order_amount,order_price,original_price) )
+        return  new_btc_balance,new_usd_balance, new_buy_order
+
+    def final_amount(price):
+        return btc_balance + usd_balance / price
+
+    k_over = 1.007
+    k_less = 1 - 0.007
+    sell_amount = 0.04
+    buy_amount = 0.02
+    inflated_k = 1.17
+    deflated_k = 0.93
+
+    for i in range(1,len(df)-1):
+        prev_price = df.iat[i-1,price_i]
+        price = df.iat[i,price_i]
+
+        btc_balance, usd_balance, sell_orders = check_sell_orders(price)
+        btc_balance, usd_balance, buy_orders = check_buy_orders(price)
+
+        k = price / prev_price
+        if k>max_k:
+            max_k = k
+        if k<min_k:
+            min_k = k
+        if k > k_over: #1.008:
+            print(k,prev_price,price)
+            amount = sell_amount
+            new_balance = market_buy(amount,price)  # tuple or None
+            if new_balance:
+                btc_balance, usd_balance = new_balance
+                sell_back_price = price * inflated_k #1.5
+                put_sell_order(amount,sell_back_price,price)
+        if k < k_less:
+            print(k,prev_price,price)
+            amount = buy_amount
+            new_balance = market_sell(amount,price)
+            if new_balance:
+                btc_balance, usd_balance = new_balance
+                buy_back_price = price * deflated_k  # 1.5
+                put_buy_order(amount, buy_back_price, price)
+
+        #print(prev_price,price)
+        #if counter < 10:
+        #    print(k,prev_price,price)
+        counter += 1
+    print(btc_balance,usd_balance,sell_orders)
+    print("buy orders",buy_orders)
+    print("min/max k",min_k,max_k)
+    final = final_amount(price)
+    panel = (final - 0.47) * price
+    print("final,panel",final,panel)
